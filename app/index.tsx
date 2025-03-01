@@ -1,23 +1,87 @@
 import mock from "@/api/mock";
 import { ThemedText } from "@/components/ThemedText";
+import { addAuthUser, AuthUser, userSelector } from "@/redux/reducers/user_reducer";
 import { router } from "expo-router";
-import { useState } from "react";
-import { Animated, StyleSheet, Text, TextInput, ActivityIndicator, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Animated, StyleSheet, Text, TextInput, ActivityIndicator, TouchableOpacity, View, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from 'react-native-toast-message';
+import { useSelector, useDispatch } from "react-redux";
+import * as LocalAuthentication from 'expo-local-authentication';
+import BiometricModal from "@/components/Biometric";
+import { biometricSelector, toggleBiometricEnabled } from "@/redux/reducers/biometric_reducer";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+
 
 export default function Index() {
+  // Redux
+  const authUser = useSelector(userSelector)
+  const biometric = useSelector(biometricSelector)
+  const dispatch = useDispatch()
 
+  // Local states
   const [fullname, setFullname] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+
   const [isSignUs, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [isReturningUser, setIsReturningUser] = useState(false)
 
+  const [activeUser, setActiveUser] = useState<AuthUser | undefined>()
+  const [biometricEnabled, setBiometricEnabled] = useState(false)
+
+  // Animation
   const [fadeInAnim, _] = useState(new Animated.Value(0))
   const [positionAnim, __] = useState(new Animated.Value(68));
-
   const [fadeOutAnim, ___] = useState(new Animated.Value(1))
+
+  useEffect(() => {
+    if (authUser !== undefined) {
+      const user = Object.values(authUser)[0]
+      if (user !== undefined) {
+        setIsReturningUser(true)
+        setActiveUser(user)
+        console.log('Returning user is: ', user);
+      }
+    }
+    console.log("Biometric is enabled: ", biometric);
+
+    setBiometricEnabled(biometric);
+  }, [])
+
+  const enableLocalAuth = () => {
+    dispatch(toggleBiometricEnabled())
+    proceedToHomeScreen()
+  }
+
+  const proceedToHomeScreen = () => {
+    setShowModal(false)
+    setTimeout(() => {
+      router.replace('/home')
+    }, 1000);
+  }
+
+  const biometricLogin = async () => {
+    const result = await LocalAuthentication.authenticateAsync()
+    if (result.success) {
+      setTimeout(() => {
+        router.replace('/home')
+      }, 500);
+    } else {
+      Toast.show({ type: 'error', text1: 'Error authenticating with biometry' })
+    }
+  }
+
+  const login = async () => {
+    const pw = password.trim()
+    if (pw !== '' && pw === activeUser?.password) {
+      setTimeout(() => {
+        router.replace('/home')
+      }, 1500);
+    }
+  }
 
   const signUp = async () => {
     if (loading) return;
@@ -34,14 +98,13 @@ export default function Index() {
       })
       if (response.status === 201) {
         Toast.show({ type: 'success', text1: 'Account created successfully!' })
-        setTimeout(() => {
-          router.replace('/home')
-        }, 1000);
+        const authUser = response.data
+        dispatch(addAuthUser(authUser))
+
+        setTimeout(() => { setShowModal(true) }, 1000)
       }
-      console.log(response.data);
     } catch (error) {
       console.log(error);
-
       Toast.show({ type: 'error', text1: 'Error creating account' })
     } finally {
       setLoading(false)
@@ -81,7 +144,7 @@ export default function Index() {
     >
       <View style={{ flex: 1 }} />
       <Text style={styles.header}>Assessment</Text>
-      <View style={{ flex: 1 }} />
+
       {isSignUs && (
         <Animated.View style={{ width: '100%', opacity: fadeInAnim, transform: [{ translateY: positionAnim }] }}>
           <TextInput
@@ -94,15 +157,30 @@ export default function Index() {
           />
         </Animated.View>
       )}
-      <TextInput
-        placeholder="Username"
-        placeholderTextColor="#858383"
-        autoCapitalize='none'
-        autoCorrect={false}
-        style={styles.inputFields}
-        onChangeText={setUsername}
-        value={username}
-      />
+      {isReturningUser ?
+        (<View style={{
+          width: '100%',
+          flexDirection: 'row',
+          alignContent: 'flex-start',
+          marginBottom: 16,
+        }}>
+          <Text style={styles.message}>Welcome, </Text>
+          <ThemedText
+            style={{ color: 'black', fontStyle: 'italic', fontWeight: '500', fontSize: 18 }}
+          >
+            {activeUser?.fullname}
+          </ThemedText>
+        </View>) :
+        (<TextInput
+          placeholder="Username"
+          placeholderTextColor="#858383"
+          autoCapitalize='none'
+          autoCorrect={false}
+          style={styles.inputFields}
+          onChangeText={setUsername}
+          value={username}
+        />)
+      }
       <TextInput
         placeholder="Password"
         placeholderTextColor="#858383"
@@ -111,28 +189,52 @@ export default function Index() {
         onChangeText={setPassword}
         value={password}
       />
+
       <View style={{ flex: 1 }} />
-      <TouchableOpacity style={styles.touchOpacity} onPress={signUp}>
+      <TouchableOpacity style={styles.touchOpacity} onPress={isSignUs ? signUp : login}>
         {loading ? <ActivityIndicator /> : <Text style={styles.touchText}>{isSignUs ? 'Sign up' : 'Log in'}</Text>}
       </TouchableOpacity>
-      {/* {!isSignUs && ( */}
-      <Animated.View style={{ opacity: fadeOutAnim, flexDirection: 'row', marginBottom: 20 }}>
-        <Text style={{ marginTop: 4 }}>Don't have account? </Text>
-        <TouchableOpacity onPress={signUpPress}>
-          <ThemedText style={{ color: '#e3391b' }}>Sing up</ThemedText>
-        </TouchableOpacity>
-      </Animated.View>
-      {/* )} */}
+      {!isReturningUser && (
+        <Animated.View style={{ opacity: fadeOutAnim, flexDirection: 'row', marginBottom: 20 }}>
+          <Text style={{ marginTop: 4 }}>Don't have account? </Text>
+          <TouchableOpacity onPress={signUpPress}>
+            <ThemedText style={{ color: '#e3391b' }}>Sing up</ThemedText>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+      {biometricEnabled &&
+        (
+          <Pressable
+            onPress={biometricLogin}
+            style={{ width: '100%', alignItems: 'center', marginTop: 12, }}
+          >
+            <MaterialIcons name="fingerprint" size={40} color='green' />
+          </Pressable>
+        )
+      }
+      <BiometricModal
+        isVisible={showModal}
+        onClose={proceedToHomeScreen}
+        onToggleSwitch={enableLocalAuth}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  message: {
+    fontSize: 18,
+    fontWeight: '400',
+    color: '#474747',
+    textAlign: 'left',
+    paddingTop: 1
+  },
+
   header: {
     fontSize: 30,
     fontWeight: '600',
     color: 'black',
-    marginBottom: 30
+    marginBottom: 100,
   },
 
   logo: {
