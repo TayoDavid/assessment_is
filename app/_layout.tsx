@@ -11,7 +11,7 @@ export default function RootLayout() {
         <PersistGate loading={null} persistor={persistor}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="home" />
+            <Stack.Screen name="home" options={{ headerShown: false }} />
           </Stack>
           <Toast position="bottom" />
         </PersistGate>

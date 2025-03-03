@@ -11,6 +11,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import BiometricModal from "@/components/Biometric";
 import { biometricSelector, toggleBiometricEnabled } from "@/redux/reducers/biometric_reducer";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import WelcomeMessage from "@/components/WelcomeMessage";
 
 
 export default function Index() {
@@ -158,19 +159,8 @@ export default function Index() {
         </Animated.View>
       )}
       {isReturningUser ?
-        (<View style={{
-          width: '100%',
-          flexDirection: 'row',
-          alignContent: 'flex-start',
-          marginBottom: 16,
-        }}>
-          <Text style={styles.message}>Welcome, </Text>
-          <ThemedText
-            style={{ color: 'black', fontStyle: 'italic', fontWeight: '500', fontSize: 18 }}
-          >
-            {activeUser?.fullname}
-          </ThemedText>
-        </View>) :
+        (<WelcomeMessage name={activeUser?.fullname ?? ""} />
+        ) :
         (<TextInput
           placeholder="Username"
           placeholderTextColor="#858383"
