@@ -15,7 +15,7 @@ const AccountInfoCard = (props: AccountInfoCardProp) => {
   const [balanceVisible, setBalanceVisible] = useState(false)
   const windowWidth = Dimensions.get('window').width;
   return (
-    <View key={props.index} style={{ ...styles.card, width: windowWidth * 0.75 }}>
+    <View key={`${props.index} - ${props.info.id}`} style={{ ...styles.card, width: windowWidth * 0.75 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text style={styles.accountNumber}>{props.info.accountNumber}</Text>
         <Pressable onPress={() => {

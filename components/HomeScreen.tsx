@@ -44,7 +44,7 @@ const HomeScreen = () => {
         {accountInfos.length > 0 && (
           <ScrollView horizontal style={{ marginBottom: 8 }}>
             {accountInfos.map((accountInfo, index) => (
-              <AccountInfoCard index={index} info={accountInfo} />
+              <AccountInfoCard key={accountInfo.id} index={index} info={accountInfo} />
             ))}
           </ScrollView>
         )}
@@ -80,7 +80,7 @@ const HomeScreen = () => {
         renderItem={({ item }) => (
           <View style={{ flexDirection: 'row', height: 44, justifyContent: 'space-between' }}>
             <Text style={{ paddingLeft: 16, fontSize: 18 }}>{item.description}</Text>
-            <Text style={{ padding: 16, fontSize: 12 }}>{item.amount}</Text>
+            <Text style={{ padding: 16, fontSize: 12 }}>₦{item.amount.toLocaleString()}</Text>
           </View>
         )}
         renderSectionHeader={({ section }) => (
